@@ -275,12 +275,11 @@ module Deskew#
            state_next = i8_2;              
         end
         i8_2:begin
-           address = x1_reg[18:14] + y2_reg[18:14] * 28 ;
+           address = x1_reg[18:14] + y1_reg[18:14] * 28 ;
            m00_next = ($signed(xp_reg[39:14]) - $signed(x1_reg)); 
            en = 1;
-           state_next = i8_5;              
+           state_next = i8_3;              
         end
-/* -----\/----- EXCLUDED -----\/-----
         i8_3:begin
            R1_next = $signed({22'b0, in_data, 14'b0}) - ($signed(m00_reg) * $signed({10'b0,in_data}));
            assert ($signed(R1_next) >= 0)
@@ -289,17 +288,13 @@ module Deskew#
            state_next = i8_4;              
            
         end
-
- -----/\----- EXCLUDED -----/\----- */
-/* -----\/----- EXCLUDED -----\/-----
-        
         i8_4:begin
            R1_next = R1_reg + m00_reg * {10'b0, in_data};
            address = x1_reg[18:14] + y2_reg[18:14] * 28 ;
            en = 1;
            state_next = i8_5;           
         end
- -----/\----- EXCLUDED -----/\----- */
+
         i8_5:begin
            R2_next = ({22'b0, in_data,14'b0}) - ((m00_reg * {10'b0, in_data}));
            assert ($signed(R2_next) >= 0)
