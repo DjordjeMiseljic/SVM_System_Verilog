@@ -18,8 +18,8 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
+`define ONE_IMG 1
+//`define MULTIPLE_IMG 1
 module Deskew_tb#(
     parameter WIDTH = 16
     )
@@ -50,9 +50,10 @@ module Deskew_tb#(
    logic[15 : 0] queue[$];
    logic [15 : 0] golden_vectors[$];
    logic [63 : 0] pixel;
-   logic [15 : 0] golden_vector;
+   logic [16 : 0] golden_vector;
    logic[15:0] img;
-   int k1 = 0, k2 = 0;
+   int k1 = 0;
+   int k2 = 0;
    int i =0;
    Deskew DUT
      (
@@ -91,7 +92,7 @@ module Deskew_tb#(
             if(i == 783) begin
                $fscanf(fd_img ,"%b\n",img);
                queue.push_back(img);
-               $display("%d: ,%b", i*k, queue[3*783+2]);
+               k1++;
                i = 0;             
             end  
             else begin
@@ -99,9 +100,9 @@ module Deskew_tb#(
                queue.push_back(img);
                i++;
             end
-            k1++;
+            
          end
-         $display("num of images in queue  is:  %d", k);
+         $display("num of images in queue  is:  %d", k1);
 
       end
       else
@@ -111,7 +112,7 @@ module Deskew_tb#(
 
       //GOLDEN VECTORS for comparison
       i = 0;
-      k1 = 0;
+      
       if(fd_img)begin
          $display("opened successfuly");
          
@@ -120,8 +121,7 @@ module Deskew_tb#(
             if(i == 783) begin
                $fscanf(fd_img ,"%b\n",img);
                golden_vectors.push_back(img);
-               
-               $display("%d: ,%b", i*k, golden_vectors[3*783+2]);
+               k2++;
                i = 0;             
             end  
             else begin
@@ -130,19 +130,21 @@ module Deskew_tb#(
                //$display("%d: ,%b", i, golden_vectors[i]);
                i++;
             end
-            k2++;
+            
             
          end
-         $display("num of images in golden vectors queue is:  %d", k);
+         $display("num of images in golden vectors queue is:  %d", k2);
       end
       else
         $display("Error opening file");
       $fclose(fd_img);
       assert (k1 == k2) else $error("length of golden vectors and number of images doesnt match");
+      k2 = 0;
    end // initial begin
 
    // Sending data into DUT
    initial begin
+  `ifdef ONE_IMG 
       reset = 1;
       #100ns reset = 0;
       bram_en = 1;
@@ -161,22 +163,66 @@ module Deskew_tb#(
       #200ns;
       fd_img_2 = ($fopen("C:/Users/Nikola/Documents/PROJEKAT_ML/ML_number_recognition_SVM/number_dskw.txt", "w"));
       if(fd_img)begin
-          $display("file opened");
-          for(int i = 0; i<784; i++) begin
-            #100ns bram_address = 784 + i;
-            golden_vector = golden_vectors[i];
-            assert (golden_vectors[i]+16'h4000 - bram_out_data > 16'b0011111101011100 || 
-                 golden_vectors[i]+16'h4000 - bram_out_data < 16'b0100000010100100);//assert(izraz>0.99 or izraz<1.01)
-                 
+         $display("file opened");
+         for(int i = 0; i<784; i++) begin
+            #200ns bram_address = 784 + i;
+            #200ns golden_vector = golden_vectors[i]+16'h4000 - bram_out_data;
+            assert (golden_vector > 16'b0011111111110000 && golden_vector < 16'b0100000000010000) //assert(izraz>0.999 or izraz<1.001)
+            else k2++;
+            
             //$display("bram out data: %b \t golden_vector: %b",bram_out_data, golden_vectors[i]);
             $fwrite(fd_img,"%b\n",bram_out_data);  
-          end      
+         end
+         $display("number of assertions is: %d", k2);      
       end
       else
         $display("error opening file");
       $fclose(fd_img_2);
-      
-   end
+      $display("END OF SIMULATION");
+      $display("number of assertions is: %d", k2);
+      $finish; 
+     `endif
+     
+      `ifdef MULTIPLE_IMG
+      reset = 1;
+      #100ns reset = 0;
+      $display("%d", k1);   
+      for(int j = 0; j<k1; j++)begin
+         bram_en = 1;
+         bram_we = 1;      
+         for(int i = 0; i<784; i++)begin
+            #100ns bram_address = i;
+            bram_in_data = queue[j*784 + i];
+         end
+         #100ns;
+         bram_en = 0;
+         bram_we = 0;
+         #50ns dskw_start = 1;
+         #150ns dskw_start = 0;
+         wait (dskw_ready == 1);
+         bram_en = 1;
+         #200ns;
+         for(int i = 0; i<784; i++) begin
+            #200ns bram_address = 784 + i;
+            #200ns golden_vector = golden_vectors[784 * j + i]+16'h4000 - bram_out_data;
+            assert (golden_vector > 16'b0011111111110000 && golden_vector < 16'b0100000000010000) //assert(izraz>0.999 or izraz<1.001)
+            else k2++;
+        
+            //$display("bram out data: %b \t golden_vector: %b",bram_out_data, golden_vectors[i]);            
+         end
+         
+         bram_en = 0;
+         #200ns;      
+      end // for (int j = 0; j<k1; j++)
+      $display("END OF SIMULATION");
+      $display("number of assertions is: %d", k2);
+      $finish; 
+       
+      `endif
+          
+   end   
+
+   
    
    always
 		#50ns clk <= ~clk;
