@@ -43,7 +43,8 @@ module Deskew#
     logic [WIDTH-1 : 0]         x_reg, y_reg, x_next, y_next;
    //registers needed to calculate image moments (fixed point)
     logic [WIDTH-1 + 12 : 0]    M_reg[3], M_next[3];
-    logic [WIDTH-1 + 40 : 0]    temp1_reg, temp1_next, temp2_reg, temp2_next;
+    //logic [WIDTH-1 + 40 : 0]    temp1_reg, temp1_next, temp2_reg, temp2_next;
+    logic [WIDTH-1 + 40 : 0]    temp1,temp2;
    //logic [WIDTH-1 + 36 : 0]    mu02_next, mu02_reg;
     logic [WIDTH-1 + 40 : 0]    mu11_next, mu11_reg, mu02_next, mu02_reg; //61
    
@@ -51,13 +52,13 @@ module Deskew#
    
     logic [WIDTH-1 + 40 : 0]    xp_reg, yp_reg, xp_next, yp_next;
     logic [WIDTH-1 + 40 : 0]    R2_reg, R2_next;
-    logic [WIDTH-1 : 0]         P_reg, P_next;
+
     logic [WIDTH-1 + 12 : 0]    x1_reg, x1_next, x2_reg, y2_reg, x2_next, y2_next;
    
   
    
    // ASMD states
-   typedef enum                logic[4:0]{idle ,i1 ,i2, i2_1, i3, i4, i5, i5_1, i5_2, i6, i7, i8, i8_1, i8_2, i8_3, i8_4, i8_5, i8_6, i8_7} states;
+   typedef enum                logic[4:0]{idle ,i1 ,i2, i2_1, i3, i4, i5, i5_1, i6, i7, i8, i8_1, i8_2, i8_3, i8_4, i8_5, i8_6} states;
    states state, state_next;
    const logic [25 : 0] one = {13'b0,1'b1,14'b0};
    
@@ -76,12 +77,11 @@ module Deskew#
          xp_reg <= 0;
          yp_reg <= 0;         
          R2_reg <= 0;
-         P_reg <= 0;
          x1_reg <= 0;
          x2_reg <= 0;
          y2_reg <= 0;
-         temp1_reg <= 0;
-         temp2_reg <= 0;
+//         temp1_reg <= 0;
+  //       temp2_reg <= 0;
          state <= idle;
       end
       else begin
@@ -95,13 +95,12 @@ module Deskew#
          xp_reg <= xp_next;
          yp_reg <= yp_next;         
          R2_reg <= R2_next;
-         P_reg <= P_next;
          x1_reg <= x1_next;
          x2_reg <= x2_next;
          y2_reg <= y2_next;
          state <= state_next;
-         temp1_reg <= temp1_next;
-         temp2_reg <= temp2_next;
+    //     temp1_reg <= temp1_next;
+      //   temp2_reg <= temp2_next;
       end // if (reset == 1)
    end // always @ (posedge clk)
    //Combination circuit realising ASMD
@@ -116,13 +115,12 @@ module Deskew#
       xp_next = xp_reg;
       yp_next = yp_reg;
       R2_next = R2_reg;
-      P_next = P_reg;
       x1_next = x1_reg;
       x2_next = x2_reg;
       y2_next = y2_reg;
       state_next = state;
-      temp1_next = temp1_reg;
-      temp2_next = temp2_reg;
+//      temp1_next = temp1_reg;
+  //    temp2_next = temp2_reg;
       address = 11'b0;
       out_data = 16'b0;
       en = 0;
@@ -142,7 +140,6 @@ module Deskew#
               xp_next = 0;
               yp_next = 0;
               R2_next = 0;
-              P_next = 0;
               x1_next = 0;
               x2_next = 0;
               y2_next = 0;
@@ -190,18 +187,22 @@ module Deskew#
         i5:begin
            address = x_reg[10:0] + y_reg[10:0]*28;
            en = 1;
-           temp1_next = (({y_reg[13:0],14'b0} - M_reg[1][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
-           temp2_next = (({x_reg[13:0],14'b0} - M_reg[0][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
+           //temp1_next = (({y_reg[13:0],14'b0} - M_reg[1][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
+           //temp2_next = (({x_reg[13:0],14'b0} - M_reg[0][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
            state_next = i5_1;              
         end
         i5_1:begin
-           mu02_next = in_data * temp1_reg[41:14] + (mu02_reg);
-           mu11_next = $signed(in_data)*$signed(temp2_reg[41:14]) + $signed(mu11_reg);
+           temp1 = ({y_reg[13:0],14'b0} - M_reg[1][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]);
+           temp2 = (({x_reg[13:0],14'b0} - M_reg[0][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
+           mu02_next = in_data * temp1[41:14] + (mu02_reg);
+           mu11_next = $signed(in_data)*$signed(temp2[41:14]) + $signed(mu11_reg);
+//           mu02_next = in_data * temp1_reg[41:14] + (mu02_reg);
+//           mu11_next = $signed(in_data)*$signed(temp2_reg[41:14]) + $signed(mu11_reg);
            y_next = y_reg + 1;
            if(y_next == 28)begin
               x_next = x_reg + 1;
               if(x_next == 28)
-                state_next = i5_2;
+                state_next = i6;
               else
                 state_next = i4;
            end
@@ -209,14 +210,11 @@ module Deskew#
               state_next = i5;                 
            end
         end // case: i5_1
-        i5_2:begin
-            M_next[2] = ($signed({mu11_reg[41:14],14'b0})/$signed(mu02_reg[41:14]));
-            temp1_next = $signed({mu11_reg[41:14],14'b0})/$signed(mu02_reg[41:14]) * $signed({10'b0,4'b1110,14'b0});
-            state_next = i6;
-        end 
+        
         i6:begin
-           M_next[0] = M_reg[2];
-           M_next[1] = -temp1_reg[41:14];
+           M_next[0] = ($signed({mu11_reg[41:14],14'b0})/$signed(mu02_reg[41:14]));
+           temp1 = $signed({mu11_reg[41:14],14'b0})/$signed(mu02_reg[41:14]) * $signed({10'b0,4'b1110,14'b0});
+           M_next[1] = -temp1[41:14];
            x_next = 0;    
            state_next = i7;          
         end
@@ -234,7 +232,7 @@ module Deskew#
               out_data = 0;
               en = 1;
               we = 1;
-              state_next = i8_7;                 
+              state_next = i8_6;                 
            end
         end // case: i8
         i8_1:begin
@@ -245,38 +243,33 @@ module Deskew#
         end
         i8_2:begin
            address = x1_reg[18:14] + y2_reg[18:14] * 28 ;
-           M_next[2] = ($signed(xp_reg[41:14]) - $signed(x1_reg)); 
+           //M_next[2] = ($signed(xp_reg[41:14]) - $signed(x1_reg)); 
            en = 1;
            state_next = i8_3;              
         end
         i8_3:begin
-           R2_next = ({26'b0, in_data,14'b0}) - ((M_reg[2] * in_data));
+           R2_next = ({26'b0, in_data,14'b0}) - (($signed(xp_reg[41:14]) - $signed(x1_reg)) * in_data);
            //assert ($signed(R2_next) >= 0)
            address = x2_reg[18:14] + y2_reg[18:14] * 28 ;
            en = 1;
            state_next = i8_4;
         end
         i8_4:begin
-           R2_next = R2_reg + M_reg[2] * in_data;
+           
+           R2_next = R2_reg + ($signed(xp_reg[41:14]) - $signed(x1_reg)) * in_data;
            state_next = i8_5;              
         end
+        
         i8_5:begin
-            //assert(R2_reg[39:14] <= {11'b0,1'b1,14'b0});
-           P_next = R2_reg[29:14] ;//+ (yp_reg - y1_reg) / (y2_reg - y1_reg) * (R1_reg - R2_reg);
-           state_next = i8_6;              
-        end
-        i8_6:begin
-           address = 784 + x_reg[10:0] + y_reg[10:0]*28;           
+           address = 784 + x_reg[10:0] + y_reg[10:0]*28;   //probaj da izbacis        
+           out_data = R2_reg[29:14];
            en = 1;
            we = 1;
-           state_next = i8_7;           
+           state_next = i8_6;           
         end
 
-        i8_7:begin
-           address = 784 + x_reg[10:0] + y_reg[10:0]*28;
-           en = 1;
-           we = 1;
-           out_data = P_reg;
+        i8_6:begin
+           
            y_next = y_reg + 1;
            if(y_next == 28)begin
               x_next = x_reg + 1;
