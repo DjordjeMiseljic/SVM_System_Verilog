@@ -40,18 +40,18 @@ module Deskew#
     output logic               we
     );
    // REG and NEXT signals
-    logic [WIDTH-1 : 0]         x_reg, y_reg, x_next, y_next;
+    logic [4 : 0]         x_reg, y_reg, x_next, y_next;
    //registers needed to calculate image moments (fixed point)
     logic [WIDTH-1 + 12 : 0]    M_reg[3], M_next[3];
     //logic [WIDTH-1 + 40 : 0]    temp1_reg, temp1_next, temp2_reg, temp2_next;
-    logic [WIDTH-1 + 40 : 0]    temp1,temp2;
+    logic [WIDTH-1 + 26 : 0]    temp1,temp2;
    //logic [WIDTH-1 + 36 : 0]    mu02_next, mu02_reg;
-    logic [WIDTH-1 + 40 : 0]    mu11_next, mu11_reg, mu02_next, mu02_reg; //61
+    logic [WIDTH-1 + 26 : 0]    mu11_next, mu11_reg, mu02_next, mu02_reg; //61
    
    //registers needed to calculate DESKEW (fixed point)
    
-    logic [WIDTH-1 + 40 : 0]    xp_reg, yp_reg, xp_next, yp_next;
-    logic [WIDTH-1 + 40 : 0]    R2_reg, R2_next;
+    logic [WIDTH-1 + 26 : 0]    xp_reg, yp_reg, xp_next, yp_next;
+    logic [WIDTH-1 + 26 : 0]    R2_reg, R2_next;
 
     logic [WIDTH-1 + 12 : 0]    x1_reg, x1_next, x2_reg, y2_reg, x2_next, y2_next;
    
@@ -66,7 +66,7 @@ module Deskew#
 
    //VARIABLE REGISTER TRANSFER
    always_ff @(posedge clk) begin
-      if(reset == 1)begin
+      if(!reset)begin
          x_reg <= 0;
          y_reg <= 0;
          mu11_reg <= 0;
@@ -80,6 +80,7 @@ module Deskew#
          x1_reg <= 0;
          x2_reg <= 0;
          y2_reg <= 0;
+         
 //         temp1_reg <= 0;
   //       temp2_reg <= 0;
          state <= idle;
@@ -104,7 +105,7 @@ module Deskew#
       end // if (reset == 1)
    end // always @ (posedge clk)
    //Combination circuit realising ASMD
-   always_comb begin
+   always@(*) begin
       x_next = x_reg;
       y_next = y_reg;
       mu11_next = mu11_reg;
@@ -126,6 +127,7 @@ module Deskew#
       en = 0;
       we = 0;
       ready = 0;
+      
       case (state)
         idle:begin
            ready = 1;
@@ -154,7 +156,7 @@ module Deskew#
            state_next = i2;
         end
         i2:begin
-           address = x_reg[10:0] + y_reg[10:0]*28;
+           address = x_reg + y_reg*28;
            en = 1;
            state_next = i2_1;
         end
@@ -185,15 +187,15 @@ module Deskew#
            state_next = i5;
         end
         i5:begin
-           address = x_reg[10:0] + y_reg[10:0]*28;
+           address = x_reg + y_reg*28;
            en = 1;
            //temp1_next = (({y_reg[13:0],14'b0} - M_reg[1][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
            //temp2_next = (({x_reg[13:0],14'b0} - M_reg[0][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
            state_next = i5_1;              
         end
         i5_1:begin
-           temp1 = ({y_reg[13:0],14'b0} - M_reg[1][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]);
-           temp2 = (({x_reg[13:0],14'b0} - M_reg[0][27:0]) * ({y_reg[13:0],14'b0} - M_reg[1][27:0]));
+           temp1 = ({y_reg,14'b0} - M_reg[1][27:0]) * ({y_reg,14'b0} - M_reg[1][27:0]);
+           temp2 = (({x_reg,14'b0} - M_reg[0][27:0]) * ({y_reg,14'b0} - M_reg[1][27:0]));
            mu02_next = in_data * temp1[41:14] + (mu02_reg);
            mu11_next = $signed(in_data)*$signed(temp2[41:14]) + $signed(mu11_reg);
 //           mu02_next = in_data * temp1_reg[41:14] + (mu02_reg);
@@ -223,12 +225,12 @@ module Deskew#
            state_next  = i8;              
         end
         i8:begin
-           xp_next = $signed(one) * $signed({x_reg[13:0],14'b0}) + $signed(M_reg[0]) * $signed({y_reg[13:0],14'b0}) + $signed(M_reg[1])*$signed(one);
-           yp_next = {14'b0, y_reg[13:0],28'b0};
+           xp_next = $signed(one) * $signed({23'b0,x_reg,14'b0}) + $signed(M_reg[0]) * $signed({23'b0,y_reg,14'b0}) + $signed(M_reg[1])*$signed(one);
+           yp_next = {23'b0, y_reg,28'b0};
            if(xp_next < {23'b0,5'b11011,28'b0} && yp_next <{23'b0,5'b11011,28'b0} && xp_next >= 0 && yp_next >=0)
              state_next = i8_1;
            else begin
-              address = x_reg[11:0] + y_reg[11:0]*28 + 784;
+              address = x_reg + y_reg*28 + 784;
               out_data = 0;
               en = 1;
               we = 1;
@@ -261,7 +263,7 @@ module Deskew#
         end
         
         i8_5:begin
-           address = 784 + x_reg[10:0] + y_reg[10:0]*28;   //probaj da izbacis        
+           address = 784 + x_reg + y_reg*28;   //probaj da izbacis        
            out_data = R2_reg[29:14];
            en = 1;
            we = 1;
@@ -281,7 +283,10 @@ module Deskew#
            else begin
               state_next = i8;                 
            end
-        end // case: i8_7        
+        end // case: i8_7
+        default:begin
+            //state_next = state;
+        end        
       endcase // case (state)      
    end // always_comb
    

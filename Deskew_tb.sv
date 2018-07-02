@@ -145,8 +145,9 @@ module Deskew_tb#(
    // Sending data into DUT
    initial begin
   `ifdef ONE_IMG 
-      reset = 1;
-      #100ns reset = 0;
+      reset = 0;
+      dskw_start = 0;
+      #200ns reset = 1;
       bram_en = 1;
       bram_we = 1;      
       for(int i = 0; i<784; i++)begin
@@ -156,7 +157,7 @@ module Deskew_tb#(
       #100ns;
       bram_en = 0;
       bram_we = 0;
-      #50ns dskw_start = 1;
+      dskw_start = 1;
       #150ns dskw_start = 0;
       wait (dskw_ready == 1);
       bram_en = 1;
@@ -186,6 +187,7 @@ module Deskew_tb#(
       `ifdef MULTIPLE_IMG
       reset = 1;
       #100ns reset = 0;
+      #200ns reset = 1;
       $display("%d", k1);   
       for(int j = 0; j<k1; j++)begin
          bram_en = 1;
@@ -197,13 +199,13 @@ module Deskew_tb#(
          #100ns;
          bram_en = 0;
          bram_we = 0;
-         #50ns dskw_start = 1;
+         dskw_start = 1;
          #150ns dskw_start = 0;
          wait (dskw_ready == 1);
          bram_en = 1;
          #200ns;
          for(int i = 0; i<784; i++) begin
-            #200ns bram_address = 784 + i;
+            bram_address = 784 + i;
             #200ns golden_vector = golden_vectors[784 * j + i]+16'h4000 - bram_out_data;
             assert (golden_vector > 16'b0011111111110000 && golden_vector < 16'b0100000000010000) //assert(izraz>0.999 or izraz<1.001)
             else k2++;
