@@ -178,13 +178,13 @@ module Deskew#
            end
         end // case: i2_1
         i3:begin
-           M_next[0] = {M_reg[0][27:7], 7'b0} / M_reg[2][27:7] ;// x_mc_next = m10/m00
+           M_next[0] = {M_reg[0][27:10], 4'b0} / M_reg[2][27:10] ;// x_mc_next = m10/m00
            
            x_next = 0;
            state_next = i3_1;           
         end
         i3_1:begin
-            M_next[1] = {M_reg[1][27:7], 7'b0} / M_reg[2][27:7];//  y_mc_next = m01/m00
+            M_next[1] = {M_reg[1][27:10], 4'b0} / M_reg[2][27:10];//  y_mc_next = m01/m00
             state_next = i4;
         end
         i4:begin
@@ -194,8 +194,8 @@ module Deskew#
         i5:begin
            address = x_reg + y_reg*28;
            en = 1;
-           temp1_next = ({y_reg,14'b0} - {M_reg[1][20:0], 7'b0}) * ({y_reg,14'b0} - {M_reg[1][20:0], 7'b0});
-           temp2_next = ({x_reg,14'b0} - {M_reg[0][20:0], 7'b0}) * ({y_reg,14'b0} - {M_reg[1][20:0], 7'b0});
+           temp1_next = ({y_reg,14'b0} - {M_reg[1][17:0], 10'b0}) * ({y_reg,14'b0} - {M_reg[1][17:0], 10'b0});
+           temp2_next = ({x_reg,14'b0} - {M_reg[0][17:0], 10'b0}) * ({y_reg,14'b0} - {M_reg[1][17:0], 10'b0});
            state_next = i5_1;              
         end
         i5_1:begin
@@ -229,25 +229,21 @@ module Deskew#
             
            //temp1_next = (temp1_reg)/(mu02_reg[41:14]);
             
-            temp1_next = ({temp1_reg[41:21],7'b0})/(mu02_reg[41:21]);
+            temp1_next = ({temp1_reg[40:23],5'b0})/(mu02_reg[40:23]);
             //temp2_next = - mu11_reg;
             state_next = i6;
         end
         i6:begin
-           temp1 = {temp1_reg[20:0],7'b0}* $signed({10'b0,4'b1110,14'b0});
+           temp1 = {temp1_reg[18:0],9'b0}* $signed({10'b0,4'b1110,14'b0});
            //temp2_next = temp2_reg / mu02_reg[41:14];
            if(mu11_reg[41] == 1)begin
-               M_next[0] =  - {temp1_reg[20:0],7'b0};//-mu11/mu02
+               M_next[0] =  - {temp1_reg[18:0],9'b0};//-mu11/mu02
                M_next[1] = temp1[41:14];//14*mu11/mu02
            end
            else begin
-              M_next[0] =   {temp1_reg[20:0],7'b0};//-mu11/mu02
+              M_next[0] =   {temp1_reg[18:0],9'b0};//-mu11/mu02
               M_next[1] = - temp1[41:14];//14*mu11/mu02
            end
-           
-           
-           
-           
            x_next = 0;    
            state_next = i7;          
         end

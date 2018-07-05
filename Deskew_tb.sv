@@ -18,8 +18,9 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`define ONE_IMG 1
-//`define MULTIPLE_IMG 1
+//`define ONE_IMG 1
+`define MULTIPLE_IMG 1
+
 module Deskew_tb#(
     parameter WIDTH = 16
     )
@@ -32,6 +33,7 @@ module Deskew_tb#(
    //control signals
    logic dskw_start;
    logic dskw_ready;
+   logic dskw_done_interrupt;
    //Data transfer signals beetween BRAM and DESKEW
    logic [10:0] dskw_address;
    logic [WIDTH-1 : 0] dskw_in_data;
@@ -49,17 +51,20 @@ module Deskew_tb#(
    int fd_img_2;   
    logic[15 : 0] queue[$];
    logic [15 : 0] golden_vectors[$];
-   logic [63 : 0] pixel;
    logic [16 : 0] golden_vector;
+   logic [16 : 0] golden_vector2;
    logic[15:0] img;
    int k1 = 0;
-   int k2 = 0;
+   int k2 = 0, k3 = 0;
    int i =0;
+   
+   string file_path = "C:/Users/Nikola/Documents/PROJEKAT_ML/ML_number_recognition_SVM/y_bin.txt";
    Deskew DUT
      (
       .clk(clk),
       .reset(reset),
       .start(dskw_start),
+      .done_interrupt(dskw_done_interrupt),
       .ready(dskw_ready),
       .address(dskw_address),
       .in_data(dskw_in_data),
@@ -84,8 +89,8 @@ module Deskew_tb#(
       .po_dob(dskw_in_data)
       );
    
-   initial begin    
-      fd_img = ($fopen("C:/Users/Nikola/Documents/PROJEKAT_ML/ML_number_recognition_SVM/y_bin.txt", "r"));
+   initial begin
+      fd_img = ($fopen(file_path, "r"));
       if(fd_img)begin
          $display("opened successfuly");
          while(!$feof(fd_img))begin
@@ -168,7 +173,8 @@ module Deskew_tb#(
          for(int i = 0; i<784; i++) begin
             #200ns bram_address = 784 + i;
             #200ns golden_vector = golden_vectors[i]+16'h4000 - bram_out_data;
-            assert (golden_vector > 16'b0011111111110000 && golden_vector < 16'b0100000000010000) //assert(izraz>0.999 or izraz<1.001)
+            golden_vector2 = golden_vectors[i];
+            assert (golden_vector > 16'b0011100110011010 && golden_vector < 16'b0100011001100110) //assert(izraz>0.999 or izraz<1.001)
             else k2++;
             
             //$display("bram out data: %b \t golden_vector: %b",bram_out_data, golden_vectors[i]);
@@ -185,8 +191,8 @@ module Deskew_tb#(
      `endif
      
       `ifdef MULTIPLE_IMG
-      reset = 1;
-      #100ns reset = 0;
+      reset = 0;
+      dskw_start = 0;
       #200ns reset = 1;
       $display("%d", k1);   
       for(int j = 0; j<k1; j++)begin
@@ -206,18 +212,24 @@ module Deskew_tb#(
          #200ns;
          for(int i = 0; i<784; i++) begin
             bram_address = 784 + i;
-            #200ns golden_vector = golden_vectors[784 * j + i]+16'h4000 - bram_out_data;
-            assert (golden_vector > 16'b0011111111110000 && golden_vector < 16'b0100000000010000) //assert(izraz>0.999 or izraz<1.001)
-            else k2++;
-        
+            #200ns ;
+            golden_vector = golden_vectors[784 * j + i]+16'h4000 - bram_out_data;
+            golden_vector2 = golden_vectors[784 * j + i];
+            assert (golden_vector > 16'b0011100110011010 && golden_vector < 16'b0100011001100110) //assert(izraz>0.89 or izraz<1.11)
+            else begin
+            k2++;
+            k3++;
+            end
+            golden_vector =  bram_out_data;
             //$display("bram out data: %b \t golden_vector: %b",bram_out_data, golden_vectors[i]);            
          end
-         
+         $display("number of assertions is: %d", k2);
+         k2 = 0;
          bram_en = 0;
          #200ns;      
       end // for (int j = 0; j<k1; j++)
       $display("END OF SIMULATION");
-      $display("number of assertions is: %d", k2);
+      $display("total number of assertions is: %d", k3);
       $finish; 
        
       `endif
