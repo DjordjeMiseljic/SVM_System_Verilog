@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: Team Kole
-// Engineer: Djole 'Miske Debug' Miseljic
+// Engineer: Djordje 'Miske Debug' Miseljic
 // 
 // Create Date: 07/05/2018 10:46:17 PM
 // Design Name: 
@@ -69,7 +69,7 @@ module SVM#
    logic [27 : 0]	p_tmp;		
 
    // NUM OF SUPPORT VECTORS
-   localparam bit[9:0] sv_array[0:9] = {10'd361, 10'd267, 10'd581, 10'd632, 10'd480, 10'd513, 10'd376, 10'd432, 10'd751, 10'd683};
+   localparam bit[9:0] sv_array[0:9] = {10'd361, 10'd267, 10'd581, 10'd632, 10'd80, 10'd513, 10'd376, 10'd432, 10'd751, 10'd683};
    localparam bit[9:0] IMG_LEN = 10'd784; 
 
    // SEQUENTIAL LOGIC
@@ -128,23 +128,7 @@ module SVM#
          begin
             ready = 1;
             if(start == 1)
-            begin
-               res_next = res_reg;
-               num_next = num_reg;
-               acc_next = acc_reg;
-               p_next = p_reg;
-               sv_next = sv_reg;
-               i_next = i_reg;
-               core_next = core_reg;
-               state_next = state;
-               baddr = 10'b0;
-               bdata_out = 16'b0;
-               en = 0;
-               we = 0;
-               ready = 0;
-               interrupt = 0;
                state_next  = intr0;
-            end                    
             else
                state_next = idle;
          end  	  

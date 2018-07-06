@@ -1,9 +1,13 @@
+clear
+clc
+
 struct.mode='fixed';
 truct.mode='fixed';
 struct.roundmode='round';
 struct.overflowmode='saturate';
 struct.format=[16 14];
 q=quantizer(struct);
+
 
 
 %%%Python file being read, numbers transformed into binary, and wrote back
