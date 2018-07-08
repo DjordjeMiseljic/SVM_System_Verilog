@@ -178,6 +178,7 @@ module SVM#
             p_next=1;
             i_next=0;
             interrupt=1;
+            state_next=i0;
          end
 
          // I0 state
