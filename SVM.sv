@@ -210,7 +210,7 @@ module SVM#
          // I2 state
          i2:
          begin
-            p_tmp=p_reg*0.1;
+            p_tmp=p_reg/10;
             p_next=p_tmp*p_tmp*p_tmp;
             interrupt=1;
             state_next=l;
