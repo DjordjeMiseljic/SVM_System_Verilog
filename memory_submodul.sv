@@ -27,22 +27,21 @@ module memory_submodul
    //control logic from axi
    input logic  cmd_wr_i,
    //output logic for axi
-   output logic cmd_axi_o,
+   
    output logic status_axi_o,
-   output logic axi_intr_o,
+   
    //output logic to deskew
    output logic start,
    //input logic from deskew
-   input logic  ready,
-   input logic  done_intr
+   input logic  ready
+   
    
    );
 
    logic        cmd_signal, status_signal, done_intr_signal;
    assign start = cmd_signal;
-   assign cmd_axi_o = cmd_signal;
+   
    assign status_axi_o = status_signal;
-   assign axi_intr_o = done_intr_signal;
    
    //cmd register
    always_ff@(posedge clk)begin
@@ -59,11 +58,6 @@ module memory_submodul
         status_signal <= ready;
    end
    //interrupt register
-   always_ff@(posedge clk)begin
-      if(!reset)
-        done_intr_signal <= 0;
-      else
-       done_intr_signal <= done_intr;
-   end
+   
    
 endmodule
