@@ -50,6 +50,10 @@ module SVM_tb#
    logic                [9:0] baddr_s2;
    logic                en_s2;
    logic                we_s2;
+
+   // NUM OF SUPPORT VECTORS
+   localparam bit[9:0] sv_array[0:9] = {10'd361, 10'd267, 10'd581, 10'd632, 10'd80, 10'd513, 10'd376, 10'd432, 10'd751, 10'd683};
+   localparam bit[9:0] IMG_LEN = 10'd784; 
    
    string y_dir = "C:/\Users/\Djordje/\ML_number_recognition_SVM/\bin_data/\y";
    string b_dir = "C:/\Users/\Djordje/\ML_number_recognition_SVM/\bin_data/\b";
@@ -66,6 +70,9 @@ module SVM_tb#
    int num=0;
    int fd=0;
    string s="";
+
+   int core=0;
+   int sv=0;
 
    SVM DUT
    (
@@ -110,10 +117,53 @@ module SVM_tb#
       baddr_s2=10'b0;
       en_s2=0;
       we_s2=0;
-      reset_s=1;
+      reset_s=0;
       start_s=1;
       #300ns reset_s=1;
+      
+      @(posedge interrupt_s);
+      for(int img=0; img<IMG_LEN; img++)
+      begin
+         sdata_s=yQ[img];
+         svalid_s=1;
+         wait(sready_s==1);
+         @(posedge clk_s);
+      end
+      svalid_s=0;
+      for(core=0; core<IMG_LEN; core++)
+      begin
+         for(sv=0; sv<sv_array[core]; sv++)
+         begin
+
+            //send support vector
+            @(posedge interrupt_s);
+            for(i=0; i<IMG_LEN; i++)
+            begin
+               sdata_s=svQ[core][sv*IMG_LEN + i];
+               svalid_s=1;
+               wait(sready_s==1);
+               @(posedge clk_s);
+            end
+            svalid_s=0;
+
+            //send lambda(target)
+            @(posedge interrupt_s);
+            sdata_s=ltQ[core][sv];
+            svalid_s=1;
+            wait(sready_s==1);
+            @(posedge clk_s);
+            svalid_s=0;
+         end
+         //send bias
+         @(posedge interrupt_s);
+         sdata_s=bQ[core];
+         svalid_s=1;
+         wait(sready_s==1);
+         @(posedge clk_s);
+         svalid_s=0;
+      end
    end
+   
 
 
    //EXTRACTING DATA FROM FILES                                       *****
