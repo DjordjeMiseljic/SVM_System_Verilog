@@ -18,11 +18,6 @@ set ip_repo_path [getScriptDirectory]
 
 file mkdir $resultDir
 
-# PACKAGE SVM IP
-source $ip_repo_path\/SVM_TCL\/src\/script\/SVM.tcl
-
-# PACKAGE DESKEW IP
-source $ip_repo_path\/DSKW_TCL\/src\/script\/DSKW.tcl
 
 # CONNECT SYSTEM
 create_project NumberClassificator $resultDir  -part xc7z010clg400-1 -force
